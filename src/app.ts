@@ -1,5 +1,22 @@
 console.log("PMApp in TS begins...");
 
+// Project Types
+enum ProjectStatus {
+  Active,
+  Finished,
+}
+
+class Project {
+  constructor(
+    public id: string,
+    public title: string,
+    public description: string,
+    public people: number,
+    public status: ProjectStatus
+  ) {}
+}
+// Project State management with a custom type
+type Listener = (items: Project[]) => void;
 interface Validatable {
   value: string | number;
   required?: boolean;
@@ -57,8 +74,10 @@ function autobind(_: any, _2: string, descriptor: PropertyDescriptor) {
 }
 
 class ProjectState {
-  private listeners: any[] = [];
-  private projects: any[] = [];
+  //private listeners: any[] = [];
+  private listeners: Listener[] = [];
+  //private projects: any[] = [];
+  private projects: Project[] = [];
   private static instance: ProjectState;
 
   private constructor() {}
@@ -70,16 +89,20 @@ class ProjectState {
     this.instance = new ProjectState();
     return this.instance;
   }
-  addListener(listenerFn: Function) {
+  // addListener(listenerFn: Function) {
+  //   this.listeners.push(listenerFn);
+  // }
+  addListener(listenerFn: Listener) {
     this.listeners.push(listenerFn);
   }
   addProject(title: string, description: string, numofpeople: number) {
-    const newProject = {
-      id: Math.random.toString(),
-      title: title,
-      description: description,
-      people: numofpeople,
-    };
+    const newProject = new Project(
+      Math.random.toString(),
+      title,
+      description,
+      numofpeople,
+      ProjectStatus.Active
+    );
     this.projects.push(newProject);
     for (const listenerFn of this.listeners) {
       listenerFn(this.projects.slice());
@@ -94,7 +117,7 @@ class ProjectList {
   element: HTMLElement;
   assignedProjects: any[];
 
-  constructor(private type: "active" | "Finished") {
+  constructor(private type: "active" | "finished") {
     this.templateElement = document.getElementById(
       "project-list"
     )! as HTMLTemplateElement;
@@ -116,7 +139,16 @@ class ProjectList {
     this.attach();
     this.renderContent();
   }
-  private renderProjects() {}
+  private renderProjects() {
+    const listEl = document.getElementById(
+      `${this.type}-projects-list`
+    )! as HTMLUListElement;
+    for (const projItem of this.assignedProjects) {
+      const listItem = document.createElement("li");
+      listItem.textContent = projItem.title;
+      listEl.appendChild(listItem);
+    }
+  }
   private renderContent() {
     const listId = `${this.type}-projects-list`;
     this.element.querySelector("ul")!.id = listId;
@@ -208,7 +240,8 @@ class ProjectInput {
     const userInput = this.gatheruserInput();
     if (Array.isArray(userInput)) {
       const [title, desc, people] = userInput;
-      console.log(title, desc, people);
+      //console.log(title, desc, people);
+      projectState.addProject(title, desc, people);
       this.clearInputs();
     }
     console.log(this.titleInputElement.value);
@@ -222,3 +255,5 @@ class ProjectInput {
 }
 
 const prjInput = new ProjectInput();
+const activeProjList = new ProjectList("active");
+const finishedProjList = new ProjectList("finished");
